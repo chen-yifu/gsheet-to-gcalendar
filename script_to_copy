@@ -1,0 +1,141 @@
+function myFunction() {
+    /*
+    Given a spreadsheet in Google Sheets, with a schedule table,
+    and a calendar in Google Calendar, this script will sync the
+    calendar with the schedule table by creating events for each
+    cell in the schedule table.
+    The Google Calendar ID is found at cell D3 in the spreadsheet.
+    
+    The schedule table is assumed to have the following columns:
+    [TIME, MON, TUE, WED, THU, FRI, SAT, SUN]
+    Each row represents a time slot, in 15-minute increments. 
+    The start time of the first row is found at cell G3.
+    The end time of the last row is found at cell I3.
+    The interval between rows is found at cell H3.
+
+    For example:
+    B9 is 5:00 AM; B10 is 5:15 AM; B78 is 10:15 PM.
+    C9 is Monday, 5:00 AM; C10 is Monday, 5:15 AM; C78 is Monday, 10:15 PM.
+    D9 is Tuesday, 5:00 AM; D10 is Tuesday, 5:15 AM; D78 is Tuesday, 10:15 PM.
+    ...
+    I9 is Sunday, 5:00 AM; I10 is Sunday, 5:15 AM; I78 is Sunday, 10:15 PM.
+
+    Usage:
+    It is strongly recommended that you create a new Calendar,
+    because this running script allows to automatically delete all events 
+    previously created in the calendar selected by the Google Calendar ID.
+
+    Note:
+    Google Apps Scripts times out if the script runs for more than 5 minutes.
+    Therefore, you may need to run the script multiple times.
+    If so, remember to set: deletePrevEvent = false;
+    https://stackoverflow.com/questions/14450819/google-app-script-timeout-5-minutes
+    */
+    var deletePrevEvent = true;
+    var spreadsheet = SpreadsheetApp.getActiveSheet();
+    var calendarId = spreadsheet.getRange("D3").getValue();
+    var eventCal = CalendarApp.getCalendarById(calendarId);
+    var startTime = spreadsheet.getRange("G3").getValue(); // e.g., "5:00 AM"
+    var endTime = spreadsheet.getRange("I3").getValue(); // e.g., "10:15 PM"
+    var interval = spreadsheet.getRange("H3").getValue(); // e.g., "15", unit in minutes
+    var schedule = spreadsheet.getRange("B9:I78").getValues();
+    var recurrence = CalendarApp.newRecurrence().addWeeklyRule().times(10);
+    // Clear all events from the calendar
+    // Get all events between 1900-01-01 and 3000-01-01
+    var events = eventCal.getEvents(new Date(1900, 0, 1), new Date(2100, 0, 1));
+    if (events != null && deletePrevEvent) {
+        for (var i = 0; i < events.length; i++) {
+            var toDeleteEvent = events[i];
+            console.log(
+                "Deleting event starting at " + toDeleteEvent.getStartTime() +
+                " and ending at " + toDeleteEvent.getEndTime() +
+                " for " + toDeleteEvent.getTitle()
+            );
+            toDeleteEvent.deleteEvent();
+            // Sleep for 5 second per 10 requests to avoid Google API rate limit.
+            if (i % 10 == 0) {
+                Utilities.sleep(5000);
+            }
+        }
+    } else if (deletePrevEvent) {
+        console.log("No events found.");
+    } else {
+        console.log("Not deleting previous events.");
+    }
+    // Read the schedule table and create events for each time slot.
+    var numAPIRequests = 0;
+    console.log("Schedule:");
+    console.log(schedule);
+    for (var i = 0; i < schedule.length; i++) {
+        var row = schedule[i];
+        var timeSlot = row[0];
+        // convert timeSlot to a Date object
+        var timeSlotDate = new Date(timeSlot);
+        for (var j = 1; j < row.length; j++) {
+            // Create an event for the time slot on the day of the current week now.
+            var eventDate = new Date();
+            // Set the date to the correct day of the week.
+            // set to Monday
+            eventDate.setDate(eventDate.getDate() - eventDate.getDay() + 1);
+            // offset to correct day of the week
+            eventDate.setDate(eventDate.getDate() + (j - 1));
+            var event = row[j];
+            if (event != "") {
+                var eventStart = new Date(
+                    eventDate.getFullYear(),
+                    eventDate.getMonth(),
+                    eventDate.getDate(),
+                    timeSlotDate.getHours(),
+                    timeSlotDate.getMinutes()
+                );
+                var eventEnd = new Date(
+                    eventDate.getFullYear(),
+                    eventDate.getMonth(),
+                    eventDate.getDate(),
+                    timeSlotDate.getHours(),
+                    timeSlotDate.getMinutes() + interval
+                );
+                var eventTitle = event;
+                // check if the event exists in events
+                var eventExists = false;
+                for (var k = 0; k < events.length; k++) {
+                    var existingEvent = events[k];
+                    var existingEventDate = existingEvent.getStartTime();
+                    if (existingEventDate.getFullYear() == eventStart.getFullYear() &&
+                        existingEventDate.getMonth() == eventStart.getMonth() &&
+                        existingEventDate.getDate() == eventStart.getDate() &&
+                        existingEventDate.getHours() == eventStart.getHours() &&
+                        existingEventDate.getMinutes() == eventStart.getMinutes() &&
+                        existingEvent.getTitle() == eventTitle) {
+                        eventExists = true;
+                        break;
+                    }
+                }
+                console.log(
+                    "Creating event starting at " + eventStart +
+                    " and ending at " + eventEnd +
+                    " for " + eventTitle
+                );
+                if (!eventExists) {
+                    // Create the event.
+                    eventCal.createEventSeries(
+                        eventTitle,
+                        eventStart,
+                        eventEnd,
+                        recurrence
+                    );
+                    numAPIRequests++;
+                    console.log("Successfully created event.");
+                } else {
+                    console.log(
+                        "Event already exists. Did not create event."
+                    );
+                }
+            }
+        }
+        // Sleep for 5 second to avoid Google API rate limit.
+        if (numAPIRequests % 10 == 9) {
+            Utilities.sleep(5000);
+        }
+    }
+}
