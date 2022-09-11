@@ -16,7 +16,7 @@
 
 ## Demo
 I created a video demo to show it from start to end: [link here](https://drive.google.com/file/d/16B8mNdyaBpBOszty2FdFLdfatsqPSJV7/view?usp=sharing)
-
+[![Demo](https://github.com/chen-yifu/gsheet-to-gcalendar/blob/main/demo-screenshot.png?raw=true)](https://drive.google.com/file/d/16B8mNdyaBpBOszty2FdFLdfatsqPSJV7/view?usp=sharing)
 ## Note
 The App Script should be safe to use and won't send any of your personal information to anyone except Google. Please feel free to check its source code. If you like this project, please give it a star! Thanks.
 
