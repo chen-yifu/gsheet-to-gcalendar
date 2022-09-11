@@ -8,7 +8,7 @@
 5. Copy the new calendar's Calendar ID (e.g., okne163oes89abcabcabcabcabc@group.calendar.google.com), which can be found in this calendar's Settings -> Integrate Calendar menu (bottom of the settings page)
 6. Paste the calendar's ID to Google Sheet in cell D3
 7. Go to Google Sheet's menu bar -> Extensions -> App Script (use Chrome browser if Safari won't open it)
-8. Copy the code to the App Script window
+8. Copy the custom script to the App Script window. The script is named 'script_to_copy' in this repo, or you could find it via the [link here](https://github.com/chen-yifu/gsheet-to-gcalendar/blob/main/script_to_copy)
 9. If you would like to automatically delete all existing events on the Google Calendar, set "var deletePrevEvent = true;" in Line 34. If you are starting with a blank calendar, leave it as "false".
 10. Go to App Script menu bar -> Run to run the script to sync the schedule from Google Sheet to Google Calendar
 11. Wait for the script to finish. Note: You may have to Run the script multiple times because Google sometimes limits the number of times you can modify the calendar through its API. If that happens to you (you will see a "rate limit exceeded" error in the execution log), just re-run the script while making sure "deletePrevEvent = false".
